@@ -1,0 +1,77 @@
+version: "3.8"
+
+services:
+  # application
+  microservice-02-app:
+    container_name: microservice-02-app
+    image: devsidnei/php8.1-fpm
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www/
+    restart: unless-stopped
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    depends_on:
+      - microservice-02-redis
+    networks:
+      - microservice-02
+
+  #queue  
+  microservice-02-queue:
+    container_name: microservice-02-queue
+    image: devsidnei/php8.1-fpm
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www/
+    restart: unless-stopped
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    depends_on:
+      - microservice-02-redis
+      - microservice-02-mariadb
+    networks:
+      - microservice-02
+
+  #nginx  
+  microservice-02-nginx:
+    container_name: microservice-02-nginx
+    image: nginx:alpine
+    restart: unless-stopped
+    expose:
+      - 80
+      - 443
+    volumes:
+      - ./docker-compose/nginx/:/etc/nginx/conf.d/
+      - ./:/var/www
+    networks:
+      - microservice-02
+
+  # redis  
+  microservice-02-redis:
+    container_name: microservice-02-redis
+    image: redis:latest
+    restart: unless-stopped
+    networks:
+      - microservice-02
+
+  # mariadb  
+  microservice-02-mariadb:
+    container_name: microservice-02-mariadb
+    image: mariadb:10.6.10
+    restart: unless-stopped
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    volumes:
+      - ./.docker/mysql/dbdata:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_TCP_PORT: ${DB_PORT}
+    networks:
+      - microservice-02
+
+networks:
+  microservice-02:
+    name: microservice-02
